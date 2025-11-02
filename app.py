@@ -67,7 +67,6 @@ def step_once_random(grid, bias, rng):
             ok, _ = satisfaction(grid, i, j, bias)
             if not ok:
                 diss.append((i, j))
-    occ = np.count_nonzero(grid)
     if not diss:
         return grid, 0
     empty = [(i, j) for i in range(grid.shape[0]) for j in range(grid.shape[1]) if grid[i, j] == 0]
@@ -99,7 +98,6 @@ def run_model(n=30, m=30, vacancy=0.1, bias=0.6, seed=123, max_iters=200):
         mean_same, diss_share = segregation_degree(grid, bias)
         time_same.append(mean_same)
         time_diss.append(diss_share)
-        # tipping point: 第一次超过 0.95 mean same-neighbor share
         if tipping_idx == 0 and mean_same >= 0.95:
             tipping_idx = t
         grid, moved = step_once_random(grid, bias, rng)
@@ -110,9 +108,9 @@ def run_model(n=30, m=30, vacancy=0.1, bias=0.6, seed=123, max_iters=200):
 
 def draw_grid(grid, title=""):
     vis = grid.copy().astype(float)
-    vis[vis == -1] = 0.1  # 蓝色
-    vis[vis == 0] = 0.5   # 空白
-    vis[vis == 1] = 0.9   # 红色
+    vis[vis == -1] = 0.1
+    vis[vis == 0] = 0.5
+    vis[vis == 1] = 0.9
     fig, ax = plt.subplots(figsize=(4, 4))
     ax.imshow(vis, cmap='bwr', vmin=0, vmax=1)
     ax.set_title(title)
@@ -132,35 +130,33 @@ vacancy = st.sidebar.slider("Vacancy rate", 0.0, 0.5, 0.1, 0.01)
 bias = st.sidebar.slider("Bias (tolerance threshold)", 0.0, 1.0, 0.6, 0.01)
 seed = st.sidebar.number_input("Random seed", 0, 9999, 123)
 max_iters = st.sidebar.slider("Max iterations", 10, 500, 200)
-speed = st.sidebar.slider("🎞️ Animation speed (seconds per frame)", 0.01, 1.0, 0.1, 0.01)
+speed = st.sidebar.slider("🎞️ Animation speed (s per frame)", 0.01, 1.0, 0.1, 0.01)
 
 if st.button("🚀 Run Simulation"):
     rr = run_model(n=n, m=m, vacancy=vacancy, bias=bias, seed=seed, max_iters=max_iters)
     st.success(f"Simulation completed in {rr.iters} iterations.")
 
-    # === 动画播放 ===
-    st.subheader("📽️ Dynamic Simulation")
-    placeholder = st.empty()
+    # === GIF 动画生成（显示所有帧） ===
+    frames_uint8 = []
     for i, grid in enumerate(rr.frames):
-        title = f"Iteration {i+1}"
-        if i == rr.tipping_idx:
-            title += " - Tipping Point!"
-        fig = draw_grid(grid, title)
-        placeholder.pyplot(fig)
-        time.sleep(speed)
+        fig = draw_grid(grid, f"Iteration {i+1}")
+        fig.canvas.draw()
+        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        frames_uint8.append(img)
         plt.close(fig)
+    st.subheader("📽️ Animation")
+    gif_path = "schelling.gif"
+    imageio.mimsave(gif_path, frames_uint8, duration=speed)
+    st.image(gif_path)
 
-    # === 最终结果三列展示 ===
-    st.subheader("🏁 Initial / Tipping / Final States")
-    col1, col2, col3 = st.columns(3)
+    # === 三列对比图 ===
+    st.subheader("🏁 Initial / Final States")
+    col1, col2 = st.columns(2)
     with col1:
         fig = draw_grid(rr.frames[0], "Initial State")
         st.pyplot(fig)
     with col2:
-        tipping_grid = rr.frames[rr.tipping_idx] if rr.tipping_idx > 0 else rr.frames[-1]
-        fig = draw_grid(tipping_grid, f"Tipping Point (Iter {rr.tipping_idx})")
-        st.pyplot(fig)
-    with col3:
         fig = draw_grid(rr.final_grid, "Final State")
         st.pyplot(fig)
 
@@ -178,4 +174,3 @@ if st.button("🚀 Run Simulation"):
     st.subheader("📈 Simulation Summary")
     st.write(f"**Final mean same-neighbor share:** {round(rr.time_same[-1], 3)}")
     st.write(f"**Final dissatisfied share:** {round(rr.time_diss[-1], 3)}")
-    st.write(f"**Tipping point iteration:** {rr.tipping_idx}")
