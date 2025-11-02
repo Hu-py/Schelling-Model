@@ -5,6 +5,7 @@ import time
 from dataclasses import dataclass
 from typing import List
 import imageio
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 # =============================
 # --- Model Core
 # =============================
@@ -164,18 +165,15 @@ if st.button("🚀 Run Simulation"):
     
     frames_uint8 = []
     for grid in rr.frames:
-        fig = draw_grid(grid)   # 你的 draw_grid 返回 fig
-        fig.canvas.draw()       # 渲染画布
-        # 获取图像数据
-        w, h = fig.canvas.get_width_height()
-        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
-        frames_uint8.append(img)
-        plt.close(fig)          # 关闭 figure 避免内存泄露
+        fig = draw_grid(grid)
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        buf = np.frombuffer(canvas.tostring_rgb(), dtype=np.uint8)
+        buf = buf.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        frames_uint8.append(buf)
+        plt.close(fig)
     
-    # 保存为 GIF
     imageio.mimsave("temp.gif", frames_uint8, duration=speed)
-    
-    # 在 Streamlit 显示
     st.image("temp.gif")
 
     # === 三列展示 ===
