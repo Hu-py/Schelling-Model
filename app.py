@@ -140,11 +140,12 @@ if st.button("🚀 Run Simulation"):
     frames_uint8 = []
     for i, grid in enumerate(rr.frames):
         fig = draw_grid(grid, f"Iteration {i+1}")
-        fig.canvas.draw()
-        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        fig.canvas.draw()  # 渲染
+        # 获取 RGBA 缓冲区并转为 uint8
+        img = np.asarray(fig.canvas.buffer_rgba())[:, :, :3]  # 去掉 alpha
         frames_uint8.append(img)
         plt.close(fig)
+    
     st.subheader("📽️ Animation")
     gif_path = "schelling.gif"
     imageio.mimsave(gif_path, frames_uint8, duration=speed)
