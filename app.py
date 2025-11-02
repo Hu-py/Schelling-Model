@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import time
 from dataclasses import dataclass
 from typing import List
-
+import imageio
 # =============================
 # --- Model Core
 # =============================
@@ -161,14 +161,22 @@ if st.button("🚀 Run Simulation"):
     # === 动画播放 ===
     st.subheader("📽️ Dynamic Simulation")
     placeholder = st.empty()
-    for i, grid in enumerate(rr.frames):
-        title = f"Iteration {i + 1}"
-        if i == rr.tipping_step:
-            title += " ⚠️ Tipping Point"
-        fig = draw_grid(grid, title)
-        placeholder.pyplot(fig)
-        time.sleep(speed)
-        plt.close(fig)
+    
+    frames_uint8 = []
+    for grid in rr.frames:
+        fig = draw_grid(grid)   # 你的 draw_grid 返回 fig
+        fig.canvas.draw()       # 渲染画布
+        # 获取图像数据
+        w, h = fig.canvas.get_width_height()
+        img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
+        frames_uint8.append(img)
+        plt.close(fig)          # 关闭 figure 避免内存泄露
+    
+    # 保存为 GIF
+    imageio.mimsave("temp.gif", frames_uint8, duration=speed)
+    
+    # 在 Streamlit 显示
+    st.image("temp.gif")
 
     # === 三列展示 ===
     st.subheader("🏁 Initial / Tipping / Final State")
