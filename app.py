@@ -183,6 +183,18 @@ if st.button("🚀 Run Simulation"):
         fig = draw_grid(rr.final_grid, "Final State")
         st.pyplot(fig)
 
+    # === 折线图展示 ===
+    st.subheader("📈 Dynamics over Iterations")
+    import matplotlib.pyplot as plt
+    it = range(1, len(rr.time_same) + 1)
+    fig, ax = plt.subplots()
+    ax.plot(it, rr.time_same, '-o', label='Mean same-neighbor share')
+    ax.plot(it, rr.time_diss, '-o', label='Dissatisfied share')
+    ax.set_xlabel('Iteration')
+    ax.set_ylabel('Value')
+    ax.legend()
+    st.pyplot(fig)
+
     # === 输出指标 ===
     st.subheader("📊 Simulation Summary")
     st.write(f"**Final mean same-neighbor share:** {round(rr.time_same[-1], 3)}")
