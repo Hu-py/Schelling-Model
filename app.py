@@ -121,7 +121,7 @@ def draw_grid(grid, title=""):
 # --- Streamlit UI
 # =============================
 
-st.title("🏙️ Schelling Segregation Model — Interactive Simulation")
+st.title("Schelling Segregation Model")
 
 st.sidebar.header("Simulation Parameters")
 n = st.sidebar.slider("Grid rows (n)", 10, 80, 30)
